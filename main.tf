@@ -84,6 +84,7 @@ resource "aws_lambda_permission" "apigw_invoke" {
   source_arn    = "${aws_apigatewayv2_api.http_api.execution_arn}/*/*"
 }
 
+# Connect the Gateway to Lambda 
 resource "aws_apigatewayv2_integration" "lambda_integration" {
   api_id                 = aws_apigatewayv2_api.http_api.id
   integration_type       = "AWS_PROXY"
