@@ -1,11 +1,11 @@
 # Using aws 
 provider "aws" {
-    region = "us-east-1"
+    region = var.aws_region
 }
 
 # Create S3 Bucket to store our files
 resource "aws_s3_bucket" "lambda_s3_bucket" {
-    bucket = "my-lambda-bucket-sanjay"
+    bucket = var.s3_bucket_name
 }
 
 # Upload our 'function.zip' in the s3 bucket we created
@@ -39,7 +39,8 @@ resource "aws_iam_role_policy_attachment" "lambda_logs" {
 
 # Creating a Lambda Function
 resource "aws_lambda_function" "my_lambda" {
-  function_name = "MyFunction"
+  description   = "Lambda function to deploy a Nimbus app with environment variable and integrated via REST API Gateway" 
+  function_name = var.lambda_function_name
 
   s3_bucket = aws_s3_bucket.lambda_s3_bucket.id
   s3_key    = aws_s3_object.upload_zip.key
@@ -61,61 +62,77 @@ resource "aws_lambda_function" "my_lambda" {
   source_code_hash = filebase64sha256("function.zip") # Everytime the "function.zip" is changed automatically deploy it
 }
 
-# Adding API Gateway 
-resource "aws_apigatewayv2_api" "http_api" {
-  name          = "NimbusApiGateway" 
-  protocol_type = "HTTP" 
 
-  # Cross Origin Resource Sharing config
-  cors_configuration {
-    allow_origins     = ["https://prod.d2nr02lclk5abd.amplifyapp.com"]
-    allow_methods     = ["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"]
-    allow_headers     = ["Content-Type", "X-Amz-Date", "Authorization", "X-Api-Key", "X-Amz-Security-Token"]
-    allow_credentials = true 
-  }
+# Creating the REST API 
+resource "aws_api_gateway_rest_api" "rest_api" {
+  name        = "NimbusRestApi"
+  description = "API Gateway REST for Lambda integration"
 }
 
-# We need to give the lambda permissions to allow the ApiGateway to run it(invoke) SAM will do it in backend 
-resource "aws_lambda_permission" "apigw_invoke" {
-  statement_id  = "AllowAPIGatewayInvoke" 
+# Creating a dynamic path - /{proxy+} - Catches all routes and sends them to lambda 
+resource "aws_api_gateway_resource" "proxy_resource" {
+  rest_api_id = aws_api_gateway_rest_api.rest_api.id
+  parent_id   = aws_api_gateway_rest_api.rest_api.root_resource_id
+  path_part   = "{proxy+}"
+}
+
+# This sets up the root endpoint "/" to accept ANY HTTP method like (post, get, put, etc.)
+resource "aws_api_gateway_method" "any_root" {
+  rest_api_id   = aws_api_gateway_rest_api.rest_api.id
+  resource_id   = aws_api_gateway_rest_api.rest_api.root_resource_id
+  http_method   = "ANY"
+  authorization = "NONE"
+}
+
+# similar to above allowing ANY HTTP Method 
+resource "aws_api_gateway_method" "any_proxy" {
+  rest_api_id   = aws_api_gateway_rest_api.rest_api.id
+  resource_id   = aws_api_gateway_resource.proxy_resource.id
+  http_method   = "ANY"
+  authorization = "NONE"
+}
+
+# Linking the lambda with the API we created
+resource "aws_api_gateway_integration" "lambda_root" {
+  rest_api_id             = aws_api_gateway_rest_api.rest_api.id
+  resource_id             = aws_api_gateway_rest_api.rest_api.root_resource_id
+  http_method             = aws_api_gateway_method.any_root.http_method
+  integration_http_method = "POST"
+  type                    = "AWS_PROXY"
+  uri                     = aws_lambda_function.my_lambda.invoke_arn
+}
+
+# similar to above linking the lambda with proxy 
+resource "aws_api_gateway_integration" "lambda_proxy" {
+  rest_api_id             = aws_api_gateway_rest_api.rest_api.id
+  resource_id             = aws_api_gateway_resource.proxy_resource.id
+  http_method             = aws_api_gateway_method.any_proxy.http_method
+  integration_http_method = "POST"
+  type                    = "AWS_PROXY"
+  uri                     = aws_lambda_function.my_lambda.invoke_arn
+}
+
+# Allowing API Gateway to Invoke(run) Lambda - SAM does this by default
+resource "aws_lambda_permission" "allow_api_gateway" {
+  statement_id  = "AllowExecutionFromAPIGateway"
   action        = "lambda:InvokeFunction"
-  function_name = aws_lambda_function.my_lambda.function_name 
+  function_name = aws_lambda_function.my_lambda.function_name
   principal     = "apigateway.amazonaws.com"
-  source_arn    = "${aws_apigatewayv2_api.http_api.execution_arn}/*/*"
+  source_arn    = "${aws_api_gateway_rest_api.rest_api.execution_arn}/*/*"
 }
 
-# Connect the Gateway to Lambda 
-resource "aws_apigatewayv2_integration" "lambda_integration" {
-  api_id                 = aws_apigatewayv2_api.http_api.id
-  integration_type       = "AWS_PROXY"
-  integration_uri        = aws_lambda_function.my_lambda.invoke_arn
-  integration_method     = "POST"
-  payload_format_version = "2.0"
+# Publish/Deploy the API to use for our application
+resource "aws_api_gateway_deployment" "deployment" {
+  depends_on = [
+    aws_api_gateway_integration.lambda_root,
+    aws_api_gateway_integration.lambda_proxy
+  ]
+  rest_api_id = aws_api_gateway_rest_api.rest_api.id
+  stage_name  = "Prod"
 }
 
-# API Gateway route for root 
-resource "aws_apigatewayv2_route" "root_route" {
-  api_id    = aws_apigatewayv2_api.http_api.id 
-  route_key = "ANY /" 
-  target    = "integrations/${aws_apigatewayv2_integration.lambda_integration.id}"
-}
-
-# API Gateway route for all other routes 
-resource "aws_apigatewayv2_route" "all_routes" {
-  api_id    = aws_apigatewayv2_api.http_api.id 
-  route_key = "ANY /{proxy+}" 
-  target    = "integrations/${aws_apigatewayv2_integration.lambda_integration.id}"
-}
-
-# Adding Gateway stage 
-resource "aws_apigatewayv2_stage" "prod_stage" {
-  api_id      = aws_apigatewayv2_api.http_api.id 
-  name        = "Prod" 
-  auto_deploy = true
-}
-
-# 11. Outputs
+# Outputs
 output "api_url" {
+  value = "https://${aws_api_gateway_rest_api.rest_api.id}.execute-api.${var.aws_region}.amazonaws.com/Prod/"
   description = "API Gateway endpoint URL for your nimbus application"
-  value       = aws_apigatewayv2_stage.prod_stage.invoke_url
 }
