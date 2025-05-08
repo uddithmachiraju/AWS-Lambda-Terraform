@@ -1,6 +1,1 @@
-This project sets up a serverless backend on AWS. 
-
-To run the application, use the following terraform commands:
-1. `terraform init`
-2. `terraform plan -out=aws-lambda`
-3. `terraform apply aws-lambda` 
+This project sets up a Lambda function to deploy a Nimbus app with environment variable and integrated via REST API Gateway.
