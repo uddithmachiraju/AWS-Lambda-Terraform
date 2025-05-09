@@ -2,7 +2,7 @@ locals {
   cors_headers = {
     "method.response.header.Access-Control-Allow-Headers" = "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'"
     "method.response.header.Access-Control-Allow-Methods" = "'GET,POST,PUT,DELETE,OPTIONS,PATCH,HEAD'"
-    "method.response.header.Access-Control-Allow-Origin"  = "'https://prod.d2nr02lclk5abd.amplifyapp.com'"
+    "method.response.header.Access-Control-Allow-Origin"  = var.allowed_origin
   }
 
   response_params_true = {
