@@ -1,16 +1,14 @@
 locals {
-  cors_origin    = var.cors_origin
-  cors_headers   = "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'"
-  cors_methods   = "'GET,POST,PUT,DELETE,OPTIONS,PATCH,HEAD'"
-
-  cors_response_parameters = {
-    "method.response.header.Access-Control-Allow-Headers" = local.cors_headers
-    "method.response.header.Access-Control-Allow-Methods" = local.cors_methods
-    "method.response.header.Access-Control-Allow-Origin"  = local.cors_origin
+  cors_headers = {
+    "method.response.header.Access-Control-Allow-Headers" = "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'"
+    "method.response.header.Access-Control-Allow-Methods" = "'GET,POST,PUT,DELETE,OPTIONS,PATCH,HEAD'"
+    "method.response.header.Access-Control-Allow-Origin"  = "'https://prod.d2nr02lclk5abd.amplifyapp.com'"
   }
 
-  cors_method_response_parameters = {
-    for k, _ in local.cors_response_parameters : k => true
+  response_params_true = {
+    "method.response.header.Access-Control-Allow-Headers" = true
+    "method.response.header.Access-Control-Allow-Methods" = true
+    "method.response.header.Access-Control-Allow-Origin"  = true
   }
 }
 
@@ -19,7 +17,9 @@ resource "aws_api_gateway_integration_response" "options_root_response" {
   resource_id         = aws_api_gateway_rest_api.rest_api.root_resource_id
   http_method         = aws_api_gateway_method.options_root.http_method
   status_code         = "200"
-  response_parameters = local.cors_response_parameters
+  response_parameters = local.cors_headers
+
+  depends_on = [aws_api_gateway_integration.options_root_mock]
 }
 
 resource "aws_api_gateway_method_response" "options_root_response" {
@@ -28,16 +28,19 @@ resource "aws_api_gateway_method_response" "options_root_response" {
   http_method         = aws_api_gateway_method.options_root.http_method
   status_code         = "200"
   response_models     = { "application/json" = "Empty" }
-  response_parameters = local.cors_method_response_parameters
+  response_parameters = local.response_params_true
+
+  depends_on = [aws_api_gateway_method.options_root]
 }
 
-# Same for proxy responses:
 resource "aws_api_gateway_integration_response" "options_proxy_response" {
   rest_api_id         = aws_api_gateway_rest_api.rest_api.id
   resource_id         = aws_api_gateway_resource.proxy_resource.id
   http_method         = aws_api_gateway_method.options_proxy.http_method
   status_code         = "200"
-  response_parameters = local.cors_response_parameters
+  response_parameters = local.cors_headers
+
+  depends_on = [aws_api_gateway_integration.options_proxy_mock]
 }
 
 resource "aws_api_gateway_method_response" "options_proxy_response" {
@@ -46,5 +49,7 @@ resource "aws_api_gateway_method_response" "options_proxy_response" {
   http_method         = aws_api_gateway_method.options_proxy.http_method
   status_code         = "200"
   response_models     = { "application/json" = "Empty" }
-  response_parameters = local.cors_method_response_parameters
+  response_parameters = local.response_params_true
+
+  depends_on = [aws_api_gateway_method.options_proxy]
 }
