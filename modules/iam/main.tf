@@ -1,4 +1,4 @@
-# Creating a IAM role for Lambda
+# IAM Role 
 resource "aws_iam_role" "lambda_role" {
   name = "lambda_execution_role"
   assume_role_policy = jsonencode({
@@ -14,8 +14,26 @@ resource "aws_iam_role" "lambda_role" {
   })
 }
 
-# Attaching the permissions to the IAM Role we created (As of now only basic logging ploicy was given) 
-resource "aws_iam_role_policy_attachment" "lambda_logs" {
-  role       = aws_iam_role.lambda_role.name 
+# Attach AWSLambdaBasicExecutionRole (Cloudwatch)
+resource "aws_iam_role_policy_attachment" "basic_execution" {
+  role       = aws_iam_role.lambda_role.name
   policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
+}
+
+# Attach AmazonS3FullAccess
+resource "aws_iam_role_policy_attachment" "s3_full_access" {
+  role       = aws_iam_role.lambda_role.name
+  policy_arn = "arn:aws:iam::aws:policy/AmazonS3FullAccess"
+}
+
+# Attach AmazonCognitoPowerUser
+resource "aws_iam_role_policy_attachment" "cognito_power_user" {
+  role       = aws_iam_role.lambda_role.name
+  policy_arn = "arn:aws:iam::aws:policy/AmazonCognitoPowerUser"
+}
+
+# Attach AdministratorAccess
+resource "aws_iam_role_policy_attachment" "admin_access" {
+  role       = aws_iam_role.lambda_role.name
+  policy_arn = "arn:aws:iam::aws:policy/AdministratorAccess"
 }
