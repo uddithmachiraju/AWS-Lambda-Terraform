@@ -15,5 +15,10 @@ outputs:
 	terraform output 
 
 destroy:
-	@echo "Destroy the Lambda"
+	@echo "Destroy the Architecture"
 	terraform destroy 
+
+update:
+	@echo "Updating the lambda function"
+	terraform plan -out=aws-lambda
+	terraform apply aws-lambda
