@@ -22,6 +22,7 @@ resource "aws_api_gateway_integration" "options_root_mock" {
   http_method       = "OPTIONS"
   type              = "MOCK"
   request_templates = { "application/json" = "{\"statusCode\": 200}" }
+  depends_on = [aws_api_gateway_method.options_root] 
 }
 
 resource "aws_api_gateway_integration" "options_proxy_mock" {
@@ -30,4 +31,5 @@ resource "aws_api_gateway_integration" "options_proxy_mock" {
   http_method       = "OPTIONS"
   type              = "MOCK"
   request_templates = { "application/json" = "{\"statusCode\": 200}" }
+  depends_on = [aws_api_gateway_method.options_proxy]
 }
