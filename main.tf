@@ -8,7 +8,8 @@ module "s3" {
 }
 
 module "iam" {
-  source = "./modules/iam"
+  source   = "./modules/iam"
+  iam_role = local.iam_role_name
 }
 
 module "lambda" {

@@ -4,8 +4,9 @@ resource "random_id" "suffix" {
 }
 
 locals {
-    # taking only the first 4 characters of the hex string for a 4-digit suffix, or full 6 if you want up to 6 characters
+    # if we want to take the substrings of the random number generated we can use the below.
     random_suffix      = substr(random_id.suffix.hex, 0, 6)
     bucket_name        = "${var.lambda_function_name}-s3-${local.random_suffix}"
-    api_gateway_name   = "${var.lambda_function_name}-api-gateway"
+    api_gateway_name   = "${var.lambda_function_name}-api-gateway" 
+    iam_role_name      = "${var.lambda_function_name}-iam-role"
 }
