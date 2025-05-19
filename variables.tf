@@ -6,11 +6,10 @@ variable "aws_region" {
 }
 
 # S3 Bucket Name
-variable "s3_bucket_name" {
-  description = "The name of the S3 bucket to store function.zip"
-  type        = string
-  default     = "my-lambda-bucket-test-27"
-}
+# variable "s3_bucket_name" {
+#   description = "The name of the S3 bucket to store function.zip"
+#   type        = string
+# }
 
 variable "lambda_env" {
     description = "Indicates if running in Lambda environment"
@@ -22,13 +21,13 @@ variable "lambda_env" {
 variable "lambda_function_name" {
   description = "The name of the Lambda function"
   type        = string
-  default     = "MyFunction"
+  default     = "nimbus-lambda-func"
 }
 
-variable "api_name" {
-  type = string
-  default = "NimbusAPI"
-}
+# variable "api_name" {
+#   type = string
+#   default = local.api_gateway_name
+# }
 
 variable "api_description" {
   type = string

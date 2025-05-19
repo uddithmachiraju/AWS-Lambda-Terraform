@@ -1,6 +1,6 @@
 # CREATE S3 BUCKET IF NOT EXISTS
 resource "aws_s3_bucket" "lambda_s3_bucket" {
-  bucket = var.s3_bucket_name
+  bucket = var.bucket_name
 
   # This avoids accidental deletion
   # lifecycle {

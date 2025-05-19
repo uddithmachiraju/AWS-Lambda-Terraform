@@ -3,8 +3,8 @@ provider "aws" {
 }
 
 module "s3" {
-  source          = "./modules/s3"
-  s3_bucket_name  = var.s3_bucket_name
+  source       = "./modules/s3"
+  bucket_name  = local.bucket_name
 }
 
 module "iam" {
@@ -22,7 +22,7 @@ module "lambda" {
 
 module "api_gateway" {
   source                = "./modules/api_gateway"
-  api_name              = var.api_name
+  api_gateway_name      = local.api_gateway_name
   api_description       = var.api_description
   lambda_invoke_arn     = module.lambda.lambda_invoke_arn
   lambda_function_name  = module.lambda.lambda_function_name
